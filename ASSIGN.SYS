@@ -1,0 +1,35 @@
+; ASSIGN.SYS - default configuration for XGDOS
+; Copy to the root of your boot drive, with the GEMSYS and DRIVERS folders.
+; XGDOSCFG.PRG edits the XGDOS block below and keeps everything else.
+;
+; Classic GDOS lines. XGDOS provides all of these devices itself, so the
+; driver files named here do not need to exist:
+;   1-10 screen (the TOS VDI draws, XGDOS adds Speedo text)
+;   21   printer: numbered PDF files
+;   31   metafile: GEMFILE.GEM
+;   61   memory: off-screen bitmaps
+; Bitmap .FNT fonts and optional .SYS drivers live in PATH.
+PATH = C:\DRIVERS
+01p SCREEN.SYS
+21 PRINTER.SYS
+31 META.SYS
+61 MEMORY.SYS
+; ---- XGDOS settings (edit with XGDOSCFG.PRG) ----
+FONTPATH = C:\GEMSYS
+PDFPATH = C:\PRINTS
+PDFNAME = PRN
+PDFDPI = 600
+PAPER = A4
+CACHE = 48
+HEAP = 192
+STACKS = 0
+HINTING = ON
+PRINTER = PDF
++FONT0648.SPD
++FONT0649.SPD
++FONT0709.SPD
++FONT0710.SPD
++FONT0419.SPD
++FONT0582.SPD
++FONT0583.SPD
++FONT0611.SPD

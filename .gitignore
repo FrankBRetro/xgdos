@@ -1,0 +1,13 @@
+# build output (the .PRG binaries are committed on purpose)
+build/
+# host test programs and their output
+host/test_vdi
+host/test_dev
+host/out_*.pgm
+host/hostfs/C/PRINTS/*.PDF
+host/hostfs/C/*.PDF
+host/hostfs/C/*.GEM
+# test fonts: put your own Speedo fonts here; commercial ones must not be committed
+host/hostfs/C/FONTS/*.SPD
+host/hostfs/C/FONTS/*.spd
+.DS_Store
