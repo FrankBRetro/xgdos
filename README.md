@@ -112,6 +112,12 @@ automatically. Output is vector throughout:
   PDF paths. Patterns are approximated as tints.
 * `vro_cpyfm`/`vrt_cpyfm` from memory and `v_bit_image` (GEM `.IMG`) become
   embedded images.
+* Printing is in colour: 256 colour indices, set with `vs_color`. Colour
+  bitmaps (2, 4 or 8 planes) keep their colours. A colour `.IMG` prints
+  with its own palette when the file has an `XIMG` header; without one,
+  its pixel values are treated as ST colour registers and printed with the
+  workstation's palette. `.IMG` files with more than 8 planes print in
+  black and white.
 * `v_clrwk` / `v_form_adv` start a new page, and `v_clswk` finishes the file.
 
 ## Devices

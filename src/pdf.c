@@ -906,9 +906,16 @@ static void img_row(PdfDoc *d, const u8 *s, s32 n)
     }
 }
 
+static s32 image_begin_pal(PdfDoc *d, int wd, int ht, int mode, const u8 *rgb, int nrgb);
 static s32 image_begin(PdfDoc *d, int wd, int ht, int mode)
 {
-    /* mode 0: mask (1 = paint), 1: gray 1 bit (1 = black), 2: indexed 8 bit */
+    return image_begin_pal(d, wd, ht, mode, NULL, 0);
+}
+
+/* mode 0: mask (1 = paint), 1: gray 1 bit (1 = black), 2: indexed 8 bit
+ * with the workstation palette, or with nrgb RGB byte triplets from rgb */
+static s32 image_begin_pal(PdfDoc *d, int wd, int ht, int mode, const u8 *rgb, int nrgb)
+{
     s32 obj = obj_new(d), lobj = obj_new(d), i;
     if (d->err) return -1;
     if (!grow((void **)&d->img, &d->maximg, d->nimg + 1, 4)) return -1;
@@ -918,12 +925,13 @@ static s32 image_begin(PdfDoc *d, int wd, int ht, int mode)
     if (mode == 0) ws(d, " /ImageMask true /BitsPerComponent 1 /Decode [1 0]");
     else if (mode == 1) ws(d, " /ColorSpace /DeviceGray /BitsPerComponent 1 /Decode [1 0]");
     else {
-        ws(d, " /ColorSpace [/Indexed /DeviceRGB 255 <");
-        for (i = 0; i < 256; i++) {
+        int n = (rgb && nrgb > 0) ? nrgb : 256;
+        ws(d, " /ColorSpace [/Indexed /DeviceRGB "); wnum(d, n - 1); ws(d, "<");
+        for (i = 0; i < n; i++) {
             static const char hx[] = "0123456789abcdef";
             int k;
             for (k = 0; k < 3; k++) {
-                int v = d->pal[i][k] * 255 / 1000;
+                int v = rgb ? rgb[i * 3 + k] : d->pal[i][k] * 255 / 1000;
                 char b[3];
                 b[0] = hx[(v >> 4) & 15]; b[1] = hx[v & 15]; b[2] = 0;
                 ws(d, b);
@@ -1033,7 +1041,7 @@ static void cpyfm(Wk *w, VDIPB *pb, int transparent)
 }
 
 /* GEM .IMG (v_bit_image) */
-typedef struct Rdr { s32 h; u8 buf[512]; s32 n, p; int eof; } Rdr;
+typedef struct Rdr { s32 h; u8 buf[512]; s32 n, p; int eof; u8 pal[256 * 3]; int npal; } Rdr;
 static int rd(Rdr *r)
 {
     if (r->p >= r->n) {
@@ -1065,13 +1073,44 @@ static void bit_image(Wk *w, VDIPB *pb)
     planes = hdr[4] << 8 | hdr[5];
     wd = hdr[12] << 8 | hdr[13];
     ht = hdr[14] << 8 | hdr[15];
-    for (i = 16; i < plen; i++) rd(rr);
+    {   /* extended header: "XIMG", colour model 0 (RGB), then one
+         * red, green, blue triplet (0-1000) per pixel value */
+        u8 tag[6];
+        int hi = 0, ximg = 0;
+        for (i = 16; i < plen; i++) {
+            int c = rd(rr);
+            if (c < 0) c = 0;
+            if (i < 22) {
+                tag[i - 16] = (u8)c;
+                if (i == 21) ximg = tag[0] == 'X' && tag[1] == 'I' && tag[2] == 'M' && tag[3] == 'G'
+                                    && tag[4] == 0 && tag[5] == 0;
+            } else if (ximg && i - 22 < 256 * 6) {
+                if (!((i - 22) & 1)) hi = c;
+                else {
+                    s32 v = (s32)(hi << 8 | c);
+                    if (v > 1000) v = 1000;
+                    rr->pal[(i - 22) >> 1] = (u8)((v * 255 + 500) / 1000);
+                }
+            }
+        }
+        if (ximg && planes >= 2 && planes <= 8) {
+            rr->npal = (int)((plen - 22) / 6);
+            if (rr->npal > (1 << planes)) rr->npal = 1 << planes;
+            if (rr->npal < 2) rr->npal = 0;
+        }
+    }
     if (wd <= 0 || ht <= 0 || planes < 1) { xos_close(rr->h); heap_free(rr); return; }
     rb = (wd + 7) >> 3;
-    line = (u8 *)p_alloc(rb * planes + 64);
+    /* planes, pattern, and (colour) one index byte per pixel */
+    line = (u8 *)p_alloc(rb * planes + 64 + (planes > 1 && planes <= 8 ? wd : 0));
     if (!line) { xos_close(rr->h); heap_free(rr); return; }
     pat = line + rb * planes;
-    k = image_begin(d, (int)wd, (int)ht, 1);
+    if (planes > 1 && planes <= 8) {
+        /* colour: the file's own palette (XIMG), or else the pixel values
+         * are colour registers, printed with the workstation palette */
+        if (rr->npal) k = image_begin_pal(d, (int)wd, (int)ht, 2, rr->pal, 1 << planes);
+        else k = image_begin(d, (int)wd, (int)ht, 2);
+    } else k = image_begin(d, (int)wd, (int)ht, 1);
     y = 0;
     while (y < ht && k >= 0) {
         int rep = 1, pl, c;
@@ -1099,12 +1138,32 @@ static void bit_image(Wk *w, VDIPB *pb)
                 }
             }
         }
-        /* combine planes: any set bit prints */
-        for (pl = 1; pl < planes; pl++) for (x0 = 0; x0 < rb; x0++) line[x0] |= line[pl * rb + x0];
-        while (rep-- > 0 && y < ht) { img_row(d, line, rb); y++; }
-        if (rr->eof) {
-            xmemset(line, 0, rb);
-            while (y < ht) { img_row(d, line, rb); y++; }
+        if (planes > 1 && planes <= 8) {
+            u8 *ix = pat + 64;
+            for (x0 = 0; x0 < wd; x0++) {
+                int v = 0;
+                for (pl = 0; pl < planes; pl++) v |= bits_at(line + pl * rb, (int)x0) << pl;
+                if (!rr->npal) {
+                    if (planes == 2) v = st4[v & 3];
+                    else if (v < 16) v = st16[v];
+                    else if (v == 255) v = 1;
+                }
+                ix[x0] = (u8)v;
+            }
+            while (rep-- > 0 && y < ht) { img_row(d, ix, wd); y++; }
+            if (rr->eof) {
+                /* the rest of the image is background: pixel value 0 */
+                for (x0 = 0; x0 < wd; x0++) ix[x0] = 0;
+                while (y < ht) { img_row(d, ix, wd); y++; }
+            }
+        } else {
+            /* more than 8 planes: no colour table, any set bit prints */
+            for (pl = 1; pl < planes; pl++) for (x0 = 0; x0 < rb; x0++) line[x0] |= line[pl * rb + x0];
+            while (rep-- > 0 && y < ht) { img_row(d, line, rb); y++; }
+            if (rr->eof) {
+                xmemset(line, 0, rb);
+                while (y < ht) { img_row(d, line, rb); y++; }
+            }
         }
     }
     if (k >= 0) image_end(d);

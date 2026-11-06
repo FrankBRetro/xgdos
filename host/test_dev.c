@@ -44,6 +44,36 @@ static int count(const u8 *b, int rb, int x0, int y0, int x1, int y1)
     return n;
 }
 
+
+/* a 64x32 4-plane GEM IMG: 16 vertical stripes of pixel value 0..15,
+ * with an XIMG palette (value i -> red i*66, green 0, blue 1000-i*66) */
+static void write_img(const char *fn, int ximg)
+{
+    FILE *f = fopen(fn, "wb");
+    int W = 64, H = 32, rb = 8, pl, y, i, x;
+    int hl = ximg ? 8 + 3 + 16 * 3 : 8;
+    u16 hdr[8] = { 1, 0, 4, 2, 372, 372, 0, 0 };
+    hdr[1] = (u16)hl; hdr[6] = (u16)W; hdr[7] = (u16)H;
+    for (i = 0; i < 8; i++) { fputc(hdr[i] >> 8, f); fputc(hdr[i] & 255, f); }
+    if (ximg) {
+        fputs("XIMG", f); fputc(0, f); fputc(0, f);
+        for (i = 0; i < 16; i++) {
+            int c[3]; c[0] = i * 66; c[1] = 0; c[2] = 1000 - i * 66;
+            for (x = 0; x < 3; x++) { fputc(c[x] >> 8, f); fputc(c[x] & 255, f); }
+        }
+    }
+    for (y = 0; y < H; y++)
+        for (pl = 0; pl < 4; pl++) {
+            u8 row[8];
+            for (i = 0; i < rb; i++) {      /* two stripes (4 px each) per byte */
+                int a = (i * 2) & 15, b = (i * 2 + 1) & 15;
+                row[i] = (u8)((((a >> pl) & 1) ? 0xf0 : 0) | (((b >> pl) & 1) ? 0x0f : 0));
+            }
+            fputc(0x80, f); fputc(rb, f); fwrite(row, 1, rb, f);
+        }
+    fclose(f);
+}
+
 static u16 rd16(const u8 *p) { return (u16)(p[0] | (p[1] << 8)); }
 
 int main(void)
@@ -253,6 +283,25 @@ int main(void)
             for (i = 0; i < nops; i++) CHECK(ops[i] != 116, "queries are not recorded");
         }
     }
+    /* ---------------- colour IMG printing (v_bit_image) ---------------- */
+    write_img("hostfs/C/XIMG.IMG", 1);
+    write_img("hostfs/C/PLAIN.IMG", 0);
+    for (i = 0; i < 11; i++) intin[i] = 1;
+    intin[0] = 21; intin[10] = 2;
+    vdi(1, 0, 0, 0, 11); h = contrl[6];
+    CHECK(h > 0, "printer open for IMG");
+    {
+        const char *fn[2] = { "C:\\XIMG.IMG", "C:\\PLAIN.IMG" };
+        int j;
+        for (j = 0; j < 2; j++) {
+            intin[0] = 0; intin[1] = 0; intin[2] = 0; intin[3] = 0; intin[4] = 0;
+            n = str(fn[j], intin + 5);
+            ptsin[0] = 300; ptsin[1] = 300 + j * 1200; ptsin[2] = 300 + 1279; ptsin[3] = 300 + j * 1200 + 639;
+            vdi(5, 23, h, 2, 5 + n);
+        }
+    }
+    vdi(4, 0, h, 0, 0);
+    vdi(2, 0, h, 0, 0);
     printf("heap free %d largest %d\n", heap_free_total(), heap_largest());
     printf(fails ? "%d FAILED\n" : "all device tests passed\n", fails);
     return fails != 0;
