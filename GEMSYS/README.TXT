@@ -3,7 +3,7 @@ GEMSYS - Speedo fonts for XGDOS
 
 These eight Speedo outline fonts were donated by Bitstream Inc. to the
 X Consortium and shipped with X11 (package font-bitstream-speedo 1.0.0).
-They are not covered by XGDOS's MIT licence: they keep their own
+They are not covered by XGDOS's licence (GPL 2): they keep their own
 Bitstream licence, in COPYING.TXT, which allows them to be used, copied,
 modified, sublicensed, sold and redistributed as long as that notice
 stays with them.
