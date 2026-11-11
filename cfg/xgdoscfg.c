@@ -147,7 +147,15 @@ static void set_status(void)
     if (api) {
         s32 fr = Supexec(api->heap_free);
         xstrcpy(status, "XGDOS ");
-        xstrcat(status, api->version >= 0x0100 ? "1.00" : "?");
+        {   /* version word 0xMMmm, e.g. 0x0101 -> "1.01" */
+            char v[8];
+            int n = xitoa(v, (api->version >> 8) & 0xff);
+            v[n++] = '.';
+            v[n++] = (char)('0' + ((api->version & 0xff) / 10) % 10);
+            v[n++] = (char)('0' + (api->version & 0xff) % 10);
+            v[n] = 0;
+            xstrcat(status, v);
+        }
         xstrcat(status, " resident: ");
         b[xitoa(b, api->nfonts)] = 0; xstrcat(status, b);
         xstrcat(status, " fonts, ");

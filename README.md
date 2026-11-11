@@ -1,4 +1,4 @@
-# XGDOS 1.00 – re-entrant Speedo GDOS replacement
+# XGDOS 1.01 – re-entrant Speedo GDOS replacement
 
 XGDOS replaces SpeedoGDOS on the Atari ST/STE/TT/Falcon. It renders
 Bitstream Speedo (`.SPD`) outline fonts at any size, prints to numbered
@@ -268,6 +268,14 @@ works; Hebrew (194–220) is not in that layout.
   d1 = parameter block, the classic GDOS convention.
 * Not implemented: `v_loadcache`/`v_savecache` (return -1), cell arrays,
   contour fill and NDC coordinates on the PDF device.
+
+## Changes
+
+* 1.01: `vst_point` picks from the SpeedoGDOS size list for outline fonts
+  instead of echoing the request back (programs that list font sizes, such
+  as TOSWIN/MINIWIN under MiNT, hung); colour GEM `.IMG` files print in
+  colour; XGDOSCFG shows the resident XGDOS's real version.
+* 1.00: first release.
 
 ## Licence
 
