@@ -81,6 +81,16 @@ int main(void)
           gtext(h, 4, y, "XGDOS Speedo: Hamburgefonstiv \x84\x94\x81\x9e \x82\x8a\x87");
           y += ptsout[3] + 2;
       }
+      /* list the sizes the way GEM programs do: ask for one point less
+       * until the answer stops going down (it must end, at 8 pt) */
+      { int last = 999, n = 0, sz;
+        for (;;) { point(h, last - 1); sz = intout[0]; if (sz >= last || n > 2000) break; last = sz; n++; }
+        printf("  vst_point size scan: %d sizes, smallest %d\n", n, last);
+        if (n != 10 || last != 8) { printf("FAIL: vst_point size scan\n"); return 1; }
+        point(h, 13); k = intout[0]; point(h, 5);
+        if (k != 12 || intout[0] != 8) { printf("FAIL: vst_point 13 -> %d, 5 -> %d\n", k, intout[0]); return 1; }
+        intin[0] = 13; vdi(246, 0, h, 0, 1);
+        if (intout[0] != 13) { printf("FAIL: vst_arbpt 13 -> %d\n", intout[0]); return 1; } }
       font(h, ids[3]); point(h, 24); align(h, 0, 0);
       effects(h, 0); gtext(h, 4, 300, "Italic");
       effects(h, 1); gtext(h, 100, 300, "Bold");

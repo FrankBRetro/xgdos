@@ -193,6 +193,13 @@ Implemented calls: `vst_font`, `vst_point`, `vst_height`, `vst_arbpt(32)`,
 `v_flushcache`, `vst_load_fonts`, `vst_unload_fonts`. All other calls go
 to the screen VDI that was already installed (ROM VDI or XGEM).
 
+As with SpeedoGDOS, `vst_point` on an outline font picks from a fixed list
+of sizes (8, 9, 10, 11, 12, 14, 18, 24, 36 and 48 points): the largest at
+or below the request, or 8 points for anything smaller, and returns the
+size chosen. `vst_arbpt` sets any size. Programs that list a font's sizes
+by asking for one point less until the answer stops going down rely on
+this.
+
 Screen text is rasterised by XGDOS and blitted with `vrt_cpyfm` through
 the existing VDI, so it works in every resolution and writing mode and
 respects clipping. Bitmap `.FNT` fonts listed in ASSIGN.SYS are loaded,

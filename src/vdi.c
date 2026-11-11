@@ -116,6 +116,22 @@ void wk_snapshot_fonts(Wk *w)
         if (xg_font[i].enabled && xg_font[i].present) w->snap[w->snap_n++] = (u8)i;
 }
 
+/* vst_point sizes for outline fonts, as SpeedoGDOS's EXTEND.SYS POINTS
+ * default. Like SpeedoGDOS, vst_point picks the largest of these at or
+ * below the request (the smallest if the request is below all of them)
+ * and returns it; vst_arbpt gives any size. Programs that list a font's
+ * sizes by calling vst_point with ever smaller values until the answer
+ * stops going down depend on this: echoing the request back made them
+ * loop for ever. */
+static const s16 pt_sizes[10] = { 8, 9, 10, 11, 12, 14, 18, 24, 36, 48 };
+
+static int snap_point(int req)
+{
+    int k, best = pt_sizes[0];
+    for (k = 0; k < 10; k++) if (pt_sizes[k] <= req) best = pt_sizes[k];
+    return best;
+}
+
 static int visible_font(Wk *w, int id)
 {
     int i;
@@ -262,10 +278,9 @@ static void xfnt_info(Wk *w, VDIPB *pb)
         if (INTIN[0] & 8) xstrncpy0(fn + 150, f->path, 200);
         if (INTIN[0] & 0x100) {
             s16 *pc = (s16 *)(x + 10 + 750);
-            static const s16 sizes[] = { 8, 9, 10, 11, 12, 14, 18, 24, 36, 48 };
             int k;
             pc[0] = 10;
-            for (k = 0; k < 10; k++) pc[1 + k] = sizes[k];
+            for (k = 0; k < 10; k++) pc[1 + k] = pt_sizes[k];
         }
         INTOUT[0] = f->vdi_id;
         INTOUT[1] = hw[2];
@@ -324,16 +339,18 @@ int xg_text_op(Wk *w, VDIPB *pb)
         if (rom) { rom_vdi(pb); w->t.font_id = INTOUT[0]; return 1; }
         return 0;
     }
-    case 107:       /* vst_point */
-        w->t.pt = INT2FIX(INTIN[0] > 0 ? INTIN[0] : 1);
+    case 107: {     /* vst_point */
+        int pt = snap_point(INTIN[0]);
+        w->t.pt = INT2FIX(pt);
         if (rom) rom_vdi(pb);
         if (w->t.fi >= 0 || !rom) {
             if (!metrics(w, &m)) return rom;
-            INTOUT[0] = INTIN[0];
+            INTOUT[0] = (s16)pt;
             CONTRL[4] = 1;
             size_out(pb, &m);
         }
         return 1;
+    }
     case 12:        /* vst_height */
         if (rom) rom_vdi(pb);
         if (w->t.fi >= 0 && txt_metrics(w, &m)) {
@@ -799,7 +816,7 @@ int xg_vdi_need(VDIPB *pb)
         w->t.font_id = INTIN[0];
         return 0;
     case 130: return INTIN[0] == 1 || INTIN[0] > w->rom_nfonts;   /* vqt_name */
-    case 107: w->t.pt = INT2FIX(INTIN[0] > 0 ? INTIN[0] : 1); return 0;
+    case 107: w->t.pt = INT2FIX(snap_point(INTIN[0])); return 0;
     case 12:  w->t.pt = txt_px2pt_y(w, INT2FIX(INTIN[0] > 0 ? INTIN[0] : 1) * 4 / 3); return 0;
     case 13:  w->t.rot = (s16)(((INTIN[0] % 3600) + 3600) % 3600); return 0;
     case 39:
