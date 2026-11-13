@@ -1,0 +1,18 @@
+; XGDOS.SYS - XGDOS for PC GEM: settings and Speedo fonts
+; Same format as the Atari's ASSIGN.SYS XGDOS block.
+; GEM.BAT runs "XGDOS GEMVDI" in place of "GEMVDI".
+; HEAP: KB for fonts and the glyph cache (CACHE, KB, is part of it),
+; in upper memory when DOS has UMBs; as much of it as fits is taken.
+FONTPATH = C:\GEMAPPS\GEMSYS\FONTS
+CACHE = 32
+HEAP = 128
+HINTING = ON
+PRINTER = DRIVER
++FONT0648.SPD
++FONT0649.SPD
++FONT0709.SPD
++FONT0710.SPD
++FONT0419.SPD
++FONT0582.SPD
++FONT0583.SPD
++FONT0611.SPD

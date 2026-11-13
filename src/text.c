@@ -403,7 +403,7 @@ static int draw_rot(Wk *w, TxtMetrics *m, TxtGlyph *g, int n, fix adv, int x, in
         if (g[i].idx < 0) continue;
         xf.ox = fixmul(tx, c) - fixmul(ty, s);
         xf.oy = fixmul(tx, s) + fixmul(ty, c);
-        if (m->hint) { xf.ox = (xf.ox + FIX_HALF) & ~0xffff; xf.oy = (xf.oy + FIX_HALF) & ~0xffff; }
+        if (m->hint) { xf.ox = (xf.ox + FIX_HALF) & ~0xffffL; xf.oy = (xf.oy + FIX_HALF) & ~0xffffL; }
         spd_char_outline(&m->f->spd, g[i].idx, &xf, &r.sink);
         if (m->bold) {   /* bold: overprint shifted copies along the baseline */
             int k;

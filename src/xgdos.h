@@ -9,8 +9,8 @@
 #include "spd.h"
 #include "config.h"
 
-#define XGDOS_VERSION   0x0101
-#define XGDOS_VSTRING   "1.01"
+#define XGDOS_VERSION   0x0102
+#define XGDOS_VSTRING   "1.02"
 
 #ifndef XG_MAXFONTS
 #define XG_MAXFONTS 96

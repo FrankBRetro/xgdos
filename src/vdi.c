@@ -45,6 +45,13 @@ static void logn(const char *a, int v, const char *b)
 }
 
 
+/* PC bring-up checkpoints in the log */
+#if defined(XG_LOG) && defined(XG_PC)
+#define CP(s) XLOG(s)
+#else
+#define CP(s) ((void)0)
+#endif
+
 #define CONTRL pb->contrl
 #define INTIN  pb->intin
 #define PTSIN  pb->ptsin
@@ -483,12 +490,20 @@ int xg_text_op(Wk *w, VDIPB *pb)
             return 1;
         }
         if (rom) {
+            CP("  130: to GEM\r\n");
             rom_vdi(pb);
+            CP("  130: back\r\n");
             /* TOS names the whole system font after its first size,
              * "6x6 system font"; it is one face in 6x6, 8x8 and 8x16 */
             if (idx == 1) sysfont_name(INTOUT);
+#ifdef XG_PC
+            /* GEM/3's vqt_name is 33 words: no outline flag word */
+            CONTRL[4] = 33;
+#else
             INTOUT[33] = 0;
             CONTRL[4] = 34;
+#endif
+            CP("  130: named\r\n");
             return 1;
         }
         return 0;
@@ -930,6 +945,7 @@ void xg_vdi(VDIPB *pb)
     w = wk_find(CONTRL[6]);
     if (!w) w = lazy_wk(CONTRL[6]);
     if (!w) { rom_vdi(pb); return; }
+    CP("  have wk\r\n");
 
     switch (w->kind) {
     case WK_PDF:
@@ -965,6 +981,7 @@ void xg_vdi(VDIPB *pb)
         rom_vdi(pb);
         return;
     }
+    CP("  text op\r\n");
     xg_lock();
     if (op == 8 || op == 241 || op == 11) {
         if (w->t.fi >= 0) screen_text(w, pb);

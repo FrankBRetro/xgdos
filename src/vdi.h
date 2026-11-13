@@ -63,9 +63,16 @@ typedef struct MFDB {
     s16 fd_w, fd_h, fd_wdwidth, fd_stand, fd_nplanes, fd_r1, fd_r2, fd_r3;
 } MFDB;
 
-/* 32 bit values in VDI word arrays (high word first) */
+/* 32 bit values in VDI word arrays: high word first on the Atari; on the
+ * PC (far pointers and longs, as GEM and its bindings store them) low word
+ * first, so a pointer's offset comes before its segment */
+#ifdef XG_PC
+#define GETLONG(a, i)    ((s32)(((u32)(u16)(a)[(i) + 1] << 16) | (u16)(a)[i]))
+#define SETLONG(a, i, v) do { s32 _v = (s32)(v); (a)[(i) + 1] = (s16)(_v >> 16); (a)[i] = (s16)_v; } while (0)
+#else
 #define GETLONG(a, i)    ((s32)(((u32)(u16)(a)[i] << 16) | (u16)(a)[(i) + 1]))
 #define SETLONG(a, i, v) do { s32 _v = (s32)(v); (a)[i] = (s16)(_v >> 16); (a)[(i) + 1] = (s16)_v; } while (0)
+#endif
 #ifdef XG_HOST   /* 64 bit host tests: pointers go through a handle table */
 void *host_ptr_get(u32 key);
 u32   host_ptr_put(const void *p);

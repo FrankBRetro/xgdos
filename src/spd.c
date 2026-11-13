@@ -197,13 +197,13 @@ static void axis_prepare(Axis *a, fix scale, int hint, fix ph)
             s32 g = a->se[i] - a->se[i - 1];
             if (g <= a->stemmax && (fix)g * scale >= FIX_HALF) {
                 fix e = (fix)a->se[i - 1] * scale + ph;
-                dx = ((e + FIX_HALF) & ~0xffff) - e;
+                dx = ((e + FIX_HALF) & ~0xffffL) - e;
                 break;
             }
         }
         if (dx == 0 && i >= a->ns) {        /* no stem: plain rounding */
             fix e = ph;
-            dx = ((e + FIX_HALF) & ~0xffff) - e;
+            dx = ((e + FIX_HALF) & ~0xffffL) - e;
         }
         for (i = 0; i < a->ns; i++) a->sp[i] = (fix)a->se[i] * scale + ph + dx;
         return;
@@ -211,7 +211,7 @@ static void axis_prepare(Axis *a, fix scale, int hint, fix ph)
     {
         int z = 0, paired = 0;
         for (i = 0; i < a->ns; i++) {
-            a->sp[i] = ((fix)a->se[i] * scale + ph + FIX_HALF) & ~0xffff;
+            a->sp[i] = ((fix)a->se[i] * scale + ph + FIX_HALF) & ~0xffffL;
             if (a->se[i] == 0) z = i;
         }
         for (i = z + 1; i < a->ns; i++) {
@@ -219,7 +219,7 @@ static void axis_prepare(Axis *a, fix scale, int hint, fix ph)
             s32 g = a->se[i] - a->se[i - 1];
             fix d = (fix)g * scale;
             if (g <= a->stemmax && !paired && i - 1 != z) {
-                fix w = (d + FIX_HALF) & ~0xffff;
+                fix w = (d + FIX_HALF) & ~0xffffL;
                 if (w < FIX_ONE && d >= FIX_ONE / 4) w = FIX_ONE;
                 a->sp[i] = prev + w;
                 paired = 1;
@@ -235,7 +235,7 @@ static void axis_prepare(Axis *a, fix scale, int hint, fix ph)
             s32 g = a->se[i + 1] - a->se[i];
             fix d = (fix)g * scale;
             if (g <= a->stemmax && !paired && i + 1 != z) {
-                fix w = (d + FIX_HALF) & ~0xffff;
+                fix w = (d + FIX_HALF) & ~0xffffL;
                 if (w < FIX_ONE && d >= FIX_ONE / 4) w = FIX_ONE;
                 a->sp[i] = next - w;
                 paired = 1;
@@ -452,7 +452,7 @@ static int do_composite(const SpdFont *f, Ctx *c, int depth)
             sc.offy = c->offy + INT2FIX(yp);
         } else {
             fix ox = xp * c->xf->sx, oy = yp * c->xf->sy;
-            if (c->xf->hint) { ox = (ox + FIX_HALF) & ~0xffff; oy = (oy + FIX_HALF) & ~0xffff; }
+            if (c->xf->hint) { ox = (ox + FIX_HALF) & ~0xffffL; oy = (oy + FIX_HALF) & ~0xffffL; }
             sc.offx = c->offx + ox;
             sc.offy = c->offy + oy;
         }

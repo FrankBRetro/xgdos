@@ -147,7 +147,7 @@ const char *xpath_base(const char *p)
     return b ? b + 1 : p;
 }
 
-#ifndef XG_HOST
+#if !defined(XG_HOST) && !defined(__WATCOMC__)   /* Open Watcom copies structures inline */
 /* the compiler may emit calls to these for structure copies */
 void *memcpy(void *d, const void *s, __SIZE_TYPE__ n) { return xmemcpy(d, s, (s32)n); }
 void *memset(void *d, int c, __SIZE_TYPE__ n) { return xmemset(d, c, (s32)n); }

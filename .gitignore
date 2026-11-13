@@ -11,3 +11,10 @@ host/hostfs/C/*.GEM
 host/hostfs/C/FONTS/*.SPD
 host/hostfs/C/FONTS/*.spd
 .DS_Store
+# PC GEM build output (pc/XGDOS.EXE itself is committed) and release zip
+pc/obj/
+pc/dist/
+pc/build.log
+pc/XGDOS-*-PCGEM.zip
+# release notes (go on GitHub, not in the repo)
+RELEASE-*.md

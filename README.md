@@ -1,4 +1,4 @@
-# XGDOS 1.01 – re-entrant Speedo GDOS replacement
+# XGDOS 1.02 – re-entrant Speedo GDOS replacement
 
 XGDOS replaces SpeedoGDOS on the Atari ST/STE/TT/Falcon. It renders
 Bitstream Speedo (`.SPD`) outline fonts at any size, prints to numbered
@@ -250,6 +250,27 @@ control). The Atari character set maps to
 Bitstream character IDs, so any font in the "BICS for Speedo" layout
 works; Hebrew (194–220) is not in that layout.
 
+## PC GEM (FreeGEM / OpenGEM)
+
+XGDOS also runs under PC GEM on DOS, giving PC GEM programs the same
+Speedo fonts and GDOS calls. It is the same font engine (`src/`), built as
+a 16-bit DOS program with Open Watcom (`pc/`):
+
+```
+make -C pc                    # pc/XGDOS.EXE   (make -C pc LOG=1: logs to C:\XGDOS.LOG)
+make -C pc dist               # pc/XGDOS-<version>-PCGEM.zip
+```
+
+It isn't a TSR: `XGDOS GEMVDI %1 %2 %3` in GEM.BAT (in place of `GEMVDI %1 %2
+%3`) reads `XGDOS.SYS` (the ASSIGN.SYS settings and font lines), loads
+the font table, and runs GEMVDI. When GEMVDI starts GEM.EXE, XGDOS puts its
+own INT EFh entry in front of GEMVDI's; VDI calls it doesn't handle go on to
+GEMVDI untouched. Its font memory goes in upper memory when DOS has UMBs,
+and it has no C library at run time, so GEM keeps as much conventional
+memory as possible. `pc/README.TXT` is the user's guide. Not on PC GEM yet:
+XGDOS's own PDF printer, metafile and memory devices (GEM's drivers do
+those).
+
 ## Status
 
 * Verified here: the Speedo decoder against both of your fonts (every
@@ -271,6 +292,8 @@ works; Hebrew (194–220) is not in that layout.
 
 ## Changes
 
+* 1.02: XGDOS for PC GEM (FreeGEM / OpenGEM on DOS), in `pc/`; the font
+  engine builds as 16-bit code too.
 * 1.01: `vst_point` picks from the SpeedoGDOS size list for outline fonts
   instead of echoing the request back (programs that list font sizes, such
   as TOSWIN/MINIWIN under MiNT, hung); colour GEM `.IMG` files print in

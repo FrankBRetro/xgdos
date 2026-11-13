@@ -7,6 +7,13 @@
 #ifndef XTYPES_H
 #define XTYPES_H
 
+/* PC (16-bit Open Watcom, see pc/Makefile): XGDOS's code assumes a 32-bit
+ * int, so in its own sources int is long. The core uses no C library, so
+ * nothing else sees this. */
+#if defined(__I86__) && defined(XG_INT32)
+#define int long
+#endif
+
 typedef unsigned char  u8;
 typedef signed char    s8;
 typedef unsigned short u16;
