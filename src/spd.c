@@ -214,11 +214,18 @@ static void axis_prepare(Axis *a, fix scale, int hint, fix ph)
             a->sp[i] = ((fix)a->se[i] * scale + ph + FIX_HALF) & ~0xffffL;
             if (a->se[i] == 0) z = i;
         }
+        /* upwards the gap from the baseline is a stem too (the foot of
+         * E, L, B...): left out, it rounds away at small sizes and every
+         * gap after it is paired the wrong way round, counters as stems */
         for (i = z + 1; i < a->ns; i++) {
             fix prev = a->sp[i - 1];
             s32 g = a->se[i] - a->se[i - 1];
             fix d = (fix)g * scale;
-            if (g <= a->stemmax && !paired && i - 1 != z) {
+            if (d < FIX_ONE / 4 && i - 1 != z) {   /* a joint, not a stem: no pairing */
+                a->sp[i] = prev;
+                continue;
+            }
+            if (g <= a->stemmax && !paired) {
                 fix w = (d + FIX_HALF) & ~0xffffL;
                 if (w < FIX_ONE && d >= FIX_ONE / 4) w = FIX_ONE;
                 a->sp[i] = prev + w;
@@ -229,11 +236,26 @@ static void axis_prepare(Axis *a, fix scale, int hint, fix ph)
                 if (a->sp[i] == prev && d >= FIX_HALF) a->sp[i] = prev + FIX_ONE;
             }
         }
+        /* the top (cap height, x-height): the group of edges above the
+         * last long gap moves as one so the topmost edge lands where it
+         * rounds to; then capitals all come out the same height */
+        if (a->ns - 1 > z + 1) {
+            int top = a->ns - 1, L = -1;
+            for (i = top; i > z + 1; i--) if (a->se[i] - a->se[i - 1] > a->stemmax) { L = i; break; }
+            if (L > 0) {
+                fix want = ((fix)a->se[top] * scale + ph + FIX_HALF) & ~0xffffL;
+                fix delta = want - a->sp[top];
+                fix room = a->sp[L] - a->sp[L - 1] - FIX_ONE;
+                if (delta < 0 && -delta > room) delta = room > 0 ? -room : 0;
+                if (delta) for (i = L; i <= top; i++) a->sp[i] += delta;
+            }
+        }
         paired = 0;
         for (i = z - 1; i >= 0; i--) {
             fix next = a->sp[i + 1];
             s32 g = a->se[i + 1] - a->se[i];
             fix d = (fix)g * scale;
+            if (d < FIX_ONE / 4 && i + 1 != z) { a->sp[i] = next; continue; }
             if (g <= a->stemmax && !paired && i + 1 != z) {
                 fix w = (d + FIX_HALF) & ~0xffffL;
                 if (w < FIX_ONE && d >= FIX_ONE / 4) w = FIX_ONE;
