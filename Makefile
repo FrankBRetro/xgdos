@@ -12,6 +12,10 @@ CROSS   ?= m68k-atari-mint-
 CC       = $(CROSS)gcc
 STRIP    = $(CROSS)strip
 PRGFLAGS = $(CROSS)flags
+# XGDOS stays resident and every program calls into it, so under MiNT with
+# memory protection (68030) its memory must be global. Without the flags
+# tool, set the bits in the program header (byte 25) directly.
+SETGLOBAL = perl -e 'open(F,"+<",$$ARGV[0]) or die; binmode F; seek F,25,0; read F,$$b,1; seek F,25,0; print F chr((ord($$b) & ~0x30) | 0x10); close F'
 
 CPU     ?= -m68000
 CFLAGS   = $(CPU) -O2 -fomit-frame-pointer -ffreestanding -fno-builtin \
@@ -36,11 +40,11 @@ all: XGDOS.PRG XGDOSLOG.PRG XGDOSCFG.PRG
 XGDOS.PRG: $(OBJ)
 	$(CC) $(LDFLAGS) -o $@ $(OBJ) $(LIBS)
 	-$(STRIP) $@
-	-$(PRGFLAGS) --mglobal $@
+	$(PRGFLAGS) --mglobal $@ 2>/dev/null || $(SETGLOBAL) $@
 
 XGDOSLOG.PRG: $(LOGOBJ)
 	$(CC) $(LDFLAGS) -o $@ $(LOGOBJ) $(LIBS)
-	-$(PRGFLAGS) --mglobal $@
+	$(PRGFLAGS) --mglobal $@ 2>/dev/null || $(SETGLOBAL) $@
 
 XGDOSCFG.PRG: $(CFGOBJ)
 	$(CC) $(LDFLAGS) -o $@ $(CFGOBJ) $(LIBS)
